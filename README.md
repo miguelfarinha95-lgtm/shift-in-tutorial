@@ -51,6 +51,7 @@ found" for either, that's what's missing, not a broken install.
 
 ## Where to look
 
+<!-- workshop progress tracked in CLAUDE.md -->
 - `docs/business-context.md`, `docs/quality-characteristics.md`, `docs/slis.md` — what "good" means.
 - `src/snip/` — the implementation.
 - `tests/` — empty on purpose; you add tests during the workshop.

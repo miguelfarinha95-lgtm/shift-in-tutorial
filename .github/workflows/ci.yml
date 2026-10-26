@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Step 1 — production-only install + import smoke test
+      #
+      # This step deliberately installs only the declared [project.dependencies]
+      # (fastapi, uvicorn) and nothing from [project.optional-dependencies].
+      # Its only job is to prove that `import snip` succeeds with the same
+      # dependency set a production deployment would have — no pytest, no httpx2.
+      # Without this check a missing production dependency can hide for weeks:
+      # tests pass because pytest pulled the package in as a side-effect, while
+      # the deployed service crashes on startup.
+      - name: "1 · Production install — verify the package imports with prod deps only"
+        run: |
+          pip install -e .
+          python -c "import snip; import snip.main; import snip.shortener; import snip.store; import snip.models"
+
+      # Step 2 — unit and API tests
+      - name: "2 · Unit and API tests"
+        run: |
+          pip install -e ".[test]"
+          pytest tests/unit tests/api -q
+
+      # Step 3 — SLI 1 latency gate
+      - name: "3 · SLI gate — p95 redirect latency < 50 ms"
+        run: pytest tests/gates -v -s
